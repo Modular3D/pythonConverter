@@ -46,7 +46,8 @@ def convert_usdz_to_glb():
     
     # Check if the upload was successful
     if response.status_code == 200:
-        return jsonify({'message': 'File uploaded to S3 successfully'}), 200
+        # Return the response from the API we called
+        return jsonify(response.json()), response.status_code
     else:
         return jsonify({'error': 'Failed to upload file to S3'}), 500
 
