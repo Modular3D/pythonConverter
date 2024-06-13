@@ -1,11 +1,14 @@
-from flask import Flask, request, jsonify, send_file, after_this_request
+from flask import Flask, request, jsonify, send_file, after_this_request, Blueprint
 import aspose.threed as a3d
 import os
 import requests
 
 app = Flask(__name__)
 
-@app.route('/convert', methods=['POST'])
+# Define a blueprint for the converter routes
+converter_bp = Blueprint('converter', __name__)
+
+@converter_bp.route('/usdz-glb', methods=['POST'])
 def convert_usdz_to_glb():
     # Check if the request contains a file named 'usdz'
     if 'usdz' not in request.files:
@@ -50,6 +53,13 @@ def convert_usdz_to_glb():
         return jsonify(response.json()), response.status_code
     else:
         return jsonify({'error': 'Failed to upload file to S3'}), 500
+
+@converter_bp.route('/main', methods=['GET'])
+def main_route():
+    return "main route"
+
+# Register the blueprint with the app
+app.register_blueprint(converter_bp, url_prefix='/converter')
 
 if __name__ == '__main__':
     app.run(debug=True)

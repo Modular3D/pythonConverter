@@ -1,0 +1,21 @@
+containerDefinitions:
+  - name: pythonconverterimage
+    image: docker.io/modularcx/pythonconverterimage:latest
+    repositoryCredentials:
+      credentialsParameter: arn:aws:secretsmanager:eu-central-1:334641153102:secret:Dockerhub_Password-sFGupd
+    cpu: 0
+    portMappings:
+      - containerPort: 5001
+        hostPort: 0
+        protocol: tcp
+    environment: []
+
+cpu: "512"
+executionRoleArn: arn:aws:iam::334641153102:role/ecsTaskExecutionRole
+family: pythonconverterimageTask
+networkMode: bridge
+requiresCompatibilities:
+  - EC2
+memory: "512"
+taskRoleArn: arn:aws:iam::334641153102:role/ecsTaskIAMRole
+volumes: []
