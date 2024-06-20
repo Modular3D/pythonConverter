@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_file, after_this_request, Blueprint
+from flask import Flask, request, jsonify, after_this_request, Blueprint
 import aspose.threed as a3d
 import os
 import requests
@@ -16,14 +16,16 @@ def convert_usdz_to_glb():
     
     # Get the USDZ file from the request
     usdz_file = request.files['usdz']
+    original_filename = usdz_file.filename
+    original_base_name = os.path.splitext(original_filename)[0]
     
     # Save the uploaded file to a temporary location
-    temp_usdz_file_path = 'temp.usdz'
+    temp_usdz_file_path = f'{original_base_name}.usdz'
     usdz_file.save(temp_usdz_file_path)
     
     # Load the USDZ file and convert it to GLB
     scene = a3d.Scene.from_file(temp_usdz_file_path)
-    output_glb_file_path = 'output.glb'
+    output_glb_file_path = f'{original_base_name}.glb'
     scene.save(output_glb_file_path)
     
     # Define form data for S3 upload
@@ -32,9 +34,12 @@ def convert_usdz_to_glb():
         'folderName': 'iosapp'
     }
     
-    # Upload the output GLB file to S3
-    with open(output_glb_file_path, 'rb') as f:
-        files = {'file': f}
+    # Upload both the uploaded USDZ file and the output GLB file to S3
+    with open(temp_usdz_file_path, 'rb') as original_file, open(output_glb_file_path, 'rb') as converted_file:
+        files = [
+            ('file', (temp_usdz_file_path, original_file, 'model/vnd.usdz+zip')),
+            ('file', (output_glb_file_path, converted_file, 'model/gltf-binary'))
+        ]
         response = requests.post('https://api.modularcx.link/global-functions-api/s3/upload-to-s3', data=form_data, files=files)
     
     # Delete the temporary files after the request is complete
@@ -52,7 +57,8 @@ def convert_usdz_to_glb():
         # Return the response from the API we called
         return jsonify(response.json()), response.status_code
     else:
-        return jsonify({'error': 'Failed to upload file to S3'}), 500
+        app.logger.error(f"Failed to upload file to S3. Status code: {response.status_code}, Response: {response.text}")
+        return jsonify({'error': 'Failed to upload file to S3', 'details': response.text}), 500
 
 @converter_bp.route('/main', methods=['GET'])
 def main_route():
